@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "reactNativeDemo",
-    "slug": "reactNativeDemo",
+    "slug": "handleliste-rnexpo",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,6 +25,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "3b931c1c-6e4b-4b9a-a870-15dc20a05dd3"
+      }
+    },
+    "owner": "martinbolsnes"
   }
 }
