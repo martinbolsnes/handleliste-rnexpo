@@ -11,6 +11,8 @@ import { auth } from '../../config/firebaseConfig';
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
+  signInWithPopup,
+  GoogleAuthProvider,
 } from 'firebase/auth';
 import { useState } from 'react';
 import Icon from 'react-native-vector-icons/Feather';
@@ -30,7 +32,7 @@ export default function SignUp({ navigation }) {
     setValue(value);
   };
 
-  const signUp = () => {
+  const signUpWithEmail = () => {
     if (password === confirmPassword) {
       createUserWithEmailAndPassword(auth, email, password)
         .then((userCredential) => {
@@ -86,7 +88,7 @@ export default function SignUp({ navigation }) {
             }
             secureTextEntry={true}
           />
-          <TouchableOpacity style={styles.btnLogin} onPress={signUp}>
+          <TouchableOpacity style={styles.btnLogin} onPress={signUpWithEmail}>
             <Text style={styles.btnLoginText}>Lag bruker</Text>
           </TouchableOpacity>
           <View style={styles.createUserContainer}>
@@ -99,9 +101,6 @@ export default function SignUp({ navigation }) {
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
-        {/* <TouchableOpacity style={styles.btnGoogle}>
-          <Text style={styles.btnGoogleText}>Google</Text>
-        </TouchableOpacity> */}
       </View>
     </View>
   );
@@ -130,7 +129,7 @@ const styles = StyleSheet.create({
   },
 
   formText: {
-    color: '#ddea90',
+    color: '#121212',
     marginTop: 10,
     fontSize: 16,
   },
@@ -199,22 +198,6 @@ const styles = StyleSheet.create({
   },
 
   btnLoginText: {
-    color: '#121212',
-    fontFamily: 'Inter-Medium',
-    fontSize: 18,
-  },
-
-  btnGoogle: {
-    marginTop: 120,
-    backgroundColor: '#ddea90',
-    paddingLeft: 24,
-    paddingRight: 24,
-    paddingBottom: 12,
-    paddingTop: 12,
-    borderRadius: 10,
-  },
-
-  btnGoogleText: {
     color: '#121212',
     fontFamily: 'Inter-Medium',
     fontSize: 18,

@@ -121,7 +121,7 @@ export default function Account({ navigation }) {
             style={styles.btnNewPassword}
             onPress={updateUserPassword}
           >
-            <Text style={styles.btnNewPasswordText}>Oppdater passord</Text>
+            <Text>Oppdater passord</Text>
           </TouchableOpacity>
         </View>
         <View style={styles.deleteUserContainer}>
@@ -197,9 +197,6 @@ const styles = StyleSheet.create({
     marginTop: 30,
     width: '100%',
     alignItems: 'center',
-  },
-
-  btnNewPasswordText: {
     fontFamily: 'Inter-Medium',
   },
 
