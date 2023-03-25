@@ -1,99 +1,117 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   View,
   StyleSheet,
   TextInput,
   TouchableOpacity,
   FlatList,
-  Alert,
   KeyboardAvoidingView,
+  Text,
 } from 'react-native';
+import { auth, db } from '../../config/firebaseConfig';
+import {
+  collection,
+  addDoc,
+  deleteDoc,
+  doc,
+  onSnapshot,
+  updateDoc,
+} from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/Feather';
-import { LinearGradient } from 'expo-linear-gradient';
-import Card from '../components/Card';
 import Header from '../components/Header';
 
 export default function Home() {
-  const [list, setList] = useState([]);
-  const [value, setValue] = useState('');
+  const [groceriesList, setGroceriesList] = useState([]);
+  const [grocerieItem, setGroceriesItem] = useState('');
 
-  const addText = (text) => {
-    if (value !== '') {
-      setList((prev) => {
-        return [...prev, { text: text, isSelected: false }];
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'groceries'), (doc) => {
+      const groceries = [];
+      doc.forEach((doc) => {
+        groceries.push({
+          id: doc.id,
+          ...doc.data(),
+        });
       });
-      setValue('');
-    } else {
-      alert('Du må skrive noe...');
-    }
+      setGroceriesList(groceries);
+    });
+    return () => unsub();
+  }, []);
+
+  const addGrocerieItem = async () => {
+    const doc = await addDoc(collection(db, 'groceries'), {
+      title: grocerieItem,
+      completed: false,
+      userId: auth.currentUser.uid,
+    });
+    setGroceriesItem('');
   };
 
-  const setIsSelected = (index, value) => {
-    let data = [];
+  const renderItem = ({ item }) => {
+    const ref = doc(db, `groceries/${item.id}`);
 
-    for (let i = 0; i < list.length; i++) {
-      if (index === i) {
-        data.push({ ...list[i], isSelected: value });
-      } else {
-        data.push(list[i]);
-      }
-    }
-
-    setList(data);
+    const toggleCompleted = async () => {
+      updateDoc(ref, { completed: !item.completed });
+    };
+    const deleteItem = async () => {
+      deleteDoc(ref);
+      const updatedGroceries = [...groceriesList].filter(
+        (item) => item.id != ref.id
+      );
+      setGroceriesList(updatedGroceries);
+    };
+    return (
+      <View style={styles.taskContainer}>
+        <TouchableOpacity style={styles.task} onPress={toggleCompleted}>
+          {item.completed && <Icon name='smile' size={30} color='#1d7948' />}
+          {!item.completed && <Icon name='meh' size={30} />}
+          <Text
+            style={{
+              ...styles.text,
+              textDecorationLine: item.completed ? 'line-through' : 'none',
+            }}
+          >
+            {item.title}
+          </Text>
+          <Icon
+            style={{ marginRight: 5 }}
+            name='trash'
+            color='#C41A08'
+            size={30}
+            onPress={() => deleteItem()}
+          />
+        </TouchableOpacity>
+      </View>
+    );
   };
-
-  const deleteItem = (idx) => {
-    Alert.alert('Fjern', 'Vil du fjerne matvaren fra listen?', [
-      {
-        text: 'Oops...',
-        style: 'cancel',
-      },
-      {
-        text: 'Ja',
-        onPress: () => {
-          const data = list.filter((item, index) => index !== idx);
-          setList(data);
-        },
-      },
-    ]);
-  };
-
   return (
     <View style={styles.screen}>
       <Header />
       <View style={styles.body}>
         <FlatList
-          data={list}
-          renderItem={({ item, index }) => (
-            <Card
-              data={item}
-              index={index}
-              setIsSelected={setIsSelected}
-              deleteItem={deleteItem}
-            />
-          )}
-          keyExtractor={(item, index) => index.toString()}
+          data={groceriesList}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
         />
       </View>
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.footer}
       >
-        <TextInput
-          style={styles.input}
-          placeholder='Legg til...'
-          onChangeText={(text) => setValue(text)}
-          value={value}
-        />
-        <TouchableOpacity onPress={() => addText(value)}>
-          <LinearGradient
+        <View style={styles.container}>
+          <TextInput
+            style={styles.input}
+            placeholder='Legg til...'
+            onChangeText={setGroceriesItem}
+            value={grocerieItem}
+          />
+          <TouchableOpacity
             style={styles.button}
-            colors={['rgba(173, 29, 235, 1)', 'rgba(110, 114, 252, 1)']}
+            onPress={() => addGrocerieItem()}
           >
-            <Icon name='plus-circle' size={44} style={styles.icon} />
-          </LinearGradient>
-        </TouchableOpacity>
+            <Icon name='plus' size={40} />
+          </TouchableOpacity>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -102,23 +120,70 @@ export default function Home() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fefefe',
+    backgroundColor: '#1d7948',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  body: {
-    flex: 8,
+  taskContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 5,
+    marginHorizontal: 5,
+    backgroundColor: '#fefefe',
+    borderRadius: 8,
+    borderColor: '#12121230',
+    borderWidth: 1,
+    shadowColor: '#12121230',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2.62,
+
+    elevation: 4,
+  },
+
+  task: {
+    flexDirection: 'row',
+    alignItems: 'center',
     width: '100%',
-    backgroundColor: '#F5f5f5',
+    padding: 8,
+    margin: 8,
+  },
+
+  text: {
+    flex: 1,
+    fontFamily: 'Inter-Medium',
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#06180e',
+    marginLeft: 10,
+  },
+
+  container: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  body: {
+    flex: 11,
+    width: '100%',
+    backgroundColor: '#d2e4da',
   },
 
   input: {
-    width: '75%',
-    padding: 10,
-    paddingTop: 20,
-    paddingBottom: 20,
-    margin: 10,
+    fontFamily: 'Inter-Medium',
+    flex: 1,
+    paddingLeft: 10,
+    paddingBottom: 18,
+    paddingTop: 18,
+    marginTop: 10,
+    marginLeft: 5,
+    marginRight: 5,
     backgroundColor: '#F5f5f5',
     borderRadius: 8,
     borderColor: '#12121220',
@@ -135,11 +200,14 @@ const styles = StyleSheet.create({
   },
 
   button: {
+    backgroundColor: '#ddea90',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 8,
-    margin: 8,
-    borderRadius: '100%',
+    marginTop: 10,
+    marginLeft: 5,
+    marginRight: 5,
+    borderRadius: 8,
     shadowColor: '#A31DD7',
     shadowOffset: {
       width: 0,
@@ -151,17 +219,14 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
 
-  icon: {
-    color: '#fefefe',
-  },
-
   footer: {
     flex: 2,
     flexDirection: 'row',
-    width: '100%',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderTopWidth: 1,
     borderTopColor: '#14141420',
     zIndex: 5,
+    paddingLeft: 10,
+    paddingRight: 10,
   },
 });
